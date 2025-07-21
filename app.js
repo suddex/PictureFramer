@@ -16,6 +16,8 @@ const exportBtn = document.getElementById('export-btn');
 const borderCheckbox = document.getElementById('border-checkbox');
 const borderCmSlider = document.getElementById('border-cm-slider');
 const borderCmNumber = document.getElementById('border-cm-number');
+// NEW: Get the frame color input
+const frameColorInput = document.getElementById('frame-color-input');
 
 // --- Event Listeners with Synchronization ---
 
@@ -39,6 +41,9 @@ borderCheckbox.addEventListener('change', handleBorderChange);
 borderCmSlider.addEventListener('input', () => syncInputs(borderCmSlider, borderCmNumber, true));
 borderCmNumber.addEventListener('input', () => syncInputs(borderCmNumber, borderCmSlider, true));
 
+// NEW: Event listener for frame color input
+frameColorInput.addEventListener('input', updateTexture);
+
 /**
  * NEW: Generic function to sync a source input with a target input.
  */
@@ -46,7 +51,7 @@ function syncInputs(source, target, shouldUpdateTexture = false) {
     target.value = source.value;
     if (shouldUpdateTexture) {
         updateBorderSliderConstraints();
-        handleBorderChange();
+        handleBorderChange(); // handleBorderChange calls updateTexture
     }
 }
 
@@ -59,7 +64,7 @@ function handleImageUpload(event) {
         img.onload = () => {
             originalImage = img;
             updateBorderSliderConstraints();
-            updateTexture();
+            updateTexture(); // Call updateTexture to apply image and frame color
             exportBtn.disabled = false;
         };
         img.src = e.target.result;
@@ -72,7 +77,7 @@ function handleBorderChange() {
     borderCmSlider.disabled = !isEnabled;
     borderCmNumber.disabled = !isEnabled;
     if (originalImage) {
-        updateTexture();
+        updateTexture(); // Call updateTexture to re-render with/without border
     }
 }
 
@@ -96,14 +101,21 @@ function updateTexture() {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
+    // Get the current frame color from the input
+    const frameColor = frameColorInput.value;
+
     const resolution = Math.min(originalImage.width, 2048);
     canvas.width = resolution;
     canvas.height = resolution * (originalImage.height / originalImage.width);
 
-    if (borderCheckbox.checked) {
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Fill the entire canvas with the chosen frame color first.
+    // This handles transparent areas of the image and serves as the background for the border.
+    ctx.fillStyle = frameColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    if (borderCheckbox.checked) {
+        // When border is checked, draw the image inside the border area.
+        // The outer border area will automatically be the 'frameColor' from the initial fill.
         const frameWidthCm = parseFloat(widthNumber.value);
         const frameHeightCm = parseFloat(heightNumber.value);
         const borderCm = parseFloat(borderCmNumber.value);
@@ -121,6 +133,7 @@ function updateTexture() {
         }
 
     } else {
+        // If no border, draw the image directly onto the frame-colored background
         ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
     }
 
@@ -148,7 +161,12 @@ function exportToGLB() {
     const depthInMeters = depthInCm / 100.0;
 
     const geometry = new THREE.BoxGeometry(widthInMeters, heightInMeters, depthInMeters);
-    const plainMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.1, roughness: 0.8 });
+    
+    // Get the frame color from the input for the 3D material
+    const frameColorHex = frameColorInput.value;
+    const frameColor = new THREE.Color(frameColorHex); // Convert hex string to THREE.Color
+
+    const plainMaterial = new THREE.MeshStandardMaterial({ color: frameColor, metalness: 0.1, roughness: 0.8 });
     const textureMaterial = new THREE.MeshStandardMaterial({ map: userImageTexture });
 
     const materials = [plainMaterial, plainMaterial, plainMaterial, plainMaterial, textureMaterial, plainMaterial];
@@ -158,13 +176,11 @@ function exportToGLB() {
     const exporter = new GLTFExporter();
     const options = { binary: true };
 
-    // --- THE FIX IS HERE ---
-    // The 'options' object must be passed as the fourth argument.
     exporter.parse(scene, (glb) => {
         saveArrayBuffer(glb, 'photo-frame.glb');
     }, (error) => {
         console.error('An error occurred during GLB export:', error);
-    }, options); // <<< THIS WAS MISSING
+    }, options);
 }
 
 function saveArrayBuffer(buffer, fileName) {

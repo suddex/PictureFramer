@@ -17,6 +17,15 @@
         .input-pair { display: flex; align-items: center; justify-content: flex-end; flex-basis: 50%; }
         .input-pair input[type="range"] { flex-grow: 1; }
         .input-pair input[type="number"] { width: 70px; margin-left: 10px; text-align: right; }
+        /* Style for color input to make it fit better */
+        .input-pair input[type="color"] {
+            width: 70px; /* Adjust width as needed */
+            height: 30px; /* Adjust height as needed */
+            padding: 0;
+            border: none;
+            cursor: pointer;
+            background: transparent;
+        }
     </style>
 </head>
 <body>
@@ -50,9 +59,17 @@
         </div>
         
         <hr>
+
+        <!-- New Control for Frame Color -->
+        <div class="control-group">
+            <label for="frame-color-input">5. Set Frame Color:</label>
+            <div class="input-pair">
+                <input type="color" id="frame-color-input" value="#dddddd">
+            </div>
+        </div>
         
         <div class="control-group">
-            <label for="border-checkbox">5. Add White Border:</label>
+            <label for="border-checkbox">6. Add Border (using frame color):</label>
             <input type="checkbox" id="border-checkbox" style="transform: scale(1.2);">
         </div>
         <div class="border-controls">
@@ -68,7 +85,7 @@
         
         <hr>
 
-        <button id="export-btn" disabled>6. Generate and Download GLB</button>
+        <button id="export-btn" disabled>7. Generate and Download GLB</button>
     </div>
     
     <script type="importmap">{ "imports": { "three": "https://unpkg.com/three@0.165.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/" } }</script>
